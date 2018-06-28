@@ -1,0 +1,27 @@
+digraph G {
+    "Слово" -> "Глагол"
+    "Слово" -> "Имя"
+    "Слово" -> "Наречие"
+    "Слово" -> "Местоимение"
+    "Слово" -> "Союз"
+    "Слово" -> "Междометие"
+    "Слово" -> "Предлог"
+    "Слово" -> "Частица"
+    "Имя" -> "Существительное"
+    "Имя" -> "Прилагательное"
+    "Имя" -> "Числительное"
+}
+
+digraph H {
+    "Word" -> "Verb"
+    "Word" -> "Noun / Nomen"
+    "Word" -> "Adverb"
+    "Word" -> "Pronoun"
+    "Word" -> "Conjunction"
+    "Word" -> "Interjection"
+    "Word" -> "Prepostion"
+    "Word" -> "Particle"
+    "Noun / Nomen" -> "Substantive"
+    "Noun / Nomen" -> "Adjective"
+    "Noun / Nomen" -> "Numeral"
+}
