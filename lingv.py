@@ -1,168 +1,200 @@
+#!usr/bin/python3
+# -*- coding: utf-8 -*-
+
 from pymystem3 import Mystem
 import re
 import sys
 
-m = Mystem()
+# m = Mystem()
 EMPTY = set()
 
-class Cлово():
+class Cлово():  # Word / Lexeme
     def __init__(self, analysis):
         try:
             # {'text': 'мне', 'analysis': [{'gr': 'SPRO,ед,1-л=(пр|дат)', 'lex': 'я'}]}
-            self.word = analysis[0]['lex']
+            self.lemma = analysis[0]['lex']
             self.analysis = analysis[0]['gr']
-            self.type = set(re.findall(r"^([A-Z]+).+", self.analysis))
-            try:
-                self.падеж = Падеж(set([x for x in re.findall(r".*((им,)|(род,)|(дат,)|(вин,)|(твор,)|(пр,)|(парт,)|(местн,)|(зват,)).*", self.analysis)[0] if x ]))
-            except IndexError:
-                self.падеж = None
-            #print (re.findall(r".*((деепр)|(инф)|(прич)|(изъяв)|(пов)).*", self.analysis), self.analysis)
-            try:
-                self.наклонение = Наклонение(set([x for x in re.findall(r".*((деепр)|(инф)|(прич)|(изъяв)|(пов)).*", self.analysis)[0] if x ]))
-            except IndexError:
-                self.наклонение = None
-            try:
-                self.залог = Залог(set([x for x in re.findall(r".*((действ)|(страд)).*", self.analysis)[0] if x ]))
-            except IndexError:
-                self.залог = None
-            #print (66666, re.findall(r".*((им,)|(род,)|(дат,)|(вин,)|(твор,)|(пр,)|(парт,)|(местн,)|(зват,)).*", self.analysis))
-            print()
+            self.pos = set(re.findall(r"^([A-Z]+).+", self.analysis))
         except (IndexError, KeyError):
             print(analysis)
             raise KeyError
 
     def __eq__(self, obj):
-        #print(obj.__class__, self.__class__, 111111111111, file = sys.stderr)
-        if self.__class__ in [Существительное,Прилагательное,Глагол,Наречие,Местоимение,Междометие,Союз,Частица,Числительное,Предлог,Падеж,Наклонение,Залог]:
-            #print(111111111111, file = sys.stderr)
-            return (self.type & obj.type) != EMPTY
+        if self.__class__ in [Существительное,Прилагательное,Числительное,Глагол,Наречие,Местоимение,Междометие,Союз,Частица,Предлог]:
+            return (self.pos & obj.type) != EMPTY
         else:
             return False
 
     def __repr__(self):
-        return "%s %s %s %s" % (self.word, self.падеж, self.наклонение, self.залог)
+        return "%s" % (self.lemma)
 
-class Существительное(Cлово):
-    def __init__(self):
-        self.type = {'S'}
+class Имя(Cлово):  # Noun / Nomen
+    def __init__(self, analysis):
+        super(Имя, self).__init__(analysis)
+        try:
+            self.падеж = set([x for x in re.findall(r".*((им,)|(род,)|(дат,)|(вин,)|(твор,)|(пр,)|(парт,)|(местн,)|(зват,)).*", self.analysis)[0] if x ])  # Case
+        except IndexError:
+            self.падеж = None
+        try:
+            self.род = set([x for x in re.findall(r".*((муж)|(жен)|(сред)).*", self.analysis)[0] if x ])  # Gender
+        except IndexError:
+            self.род = None
+        try:
+            self.число = set([x for x in re.findall(r".*((ед)|(мн)).*", self.analysis)[0] if x ])  # Number
+        except IndexError:
+            self.число = None
 
-class Прилагательное(Cлово):
-    def __init__(self):
-        self.type = {'A'}
+class Существительное(Имя):  # Substantive
+    def __init__(self, analysis):
+        super(Существительное, self).__init__(analysis)
+        self.pos = {'S'}
 
-class Глагол(Cлово):
-    def __init__(self):
-        self.type = {'V'}
+class Прилагательное(Имя): # Adjective
+    def __init__(self, analysis):
+        super(Прилагательное, self).__init__(analysis)
+        self.pos = {'A'}
 
-class Наречие(Cлово):
-    def __init__(self):
-        self.type = {'ADV'}
+class Числительное(Имя):  # Numeral
+    def __init__(self, analysis):
+        super(Числительное, self).__init__(analysis)
+        self.pos = {'ANUM','NUM'}
 
-class Местоимение(Cлово):
-    def __init__(self):
-        self.type = {'ADVPRO','APRO','SPRO'}
+class Глагол(Cлово):  # Verb
+    def __init__(self, analysis):
+        super(Глагол, self).__init__(analysis)
+        self.pos = {'V'}
+        try:
+            self.наклонение = set([x for x in re.findall(r".*((деепр)|(инф)|(прич)|(изъяв)|(пов)).*", self.analysis)[0] if x ])  # Mode / Mood
+            # деепричастие, причастие и инфинитив в наклонение? с т.з. лингвистики это грубая ошибка. 
+            # в доках майстема эта группа граммем называется "репрезентация и наклонение", мб лучше поставить везде репрезентацию 
+        except IndexError:
+            self.наклонение = None
+        try:
+            self.залог = set([x for x in re.findall(r".*((действ)|(страд)).*", self.analysis)[0] if x ])  # Voice / Diathesis
+        except IndexError:
+            self.залог = None
+        try:
+            self.время = set([x for x in re.findall(r".*((наст)|(непрош)|(прош)).*", self.analysis)[0] if x ])  # Tense
+        except IndexError:
+            self.время = None
+        try:
+            self.лицо = set([x for x in re.findall(r".*((1-л)|(2-л)|(3-л)).*", self.analysis)[0] if x ])  # Person
+        except IndexError:
+            self.лицо = None
 
-class Числительное(Cлово):
-    def __init__(self):
-        self.type = {'ANUM','NUM'}
+class Наречие(Cлово):  # Adverb
+    def __init__(self, analysis):
+        super(Наречие, self).__init__(analysis)
+        self.pos = {'ADV'}
 
-class Союз(Cлово):
-    def __init__(self):
-        self.type = {'CONJ'}
+class Местоимение(Cлово):  # Pronoun
+    def __init__(self, analysis):
+        super(Местоимение, self).__init__(analysis)
+        self.pos = {'ADVPRO','APRO','SPRO'}
+        # на подумать: если майстем разделяет местоимения (сущ, прил, наречные), можно в теории отнаследовать еще 3 класса
+        # лично мне кажется это пока избыточным, правда
 
-class Междометие(Cлово):
-    def __init__(self):
-        self.type = {'INTJ'}
+class Союз(Cлово):  # Conjunction
+    def __init__(self, analysis):
+        super(Союз, self).__init__(analysis)
+        self.pos = {'CONJ'}
 
-class Предлог(Cлово):
-    def __init__(self):
-        self.type = {'PR'}
+class Междометие(Cлово):  # Interjection
+    def __init__(self, analysis):
+        super(Междометие, self).__init__(analysis)
+        self.pos = {'INTJ'}
 
-class Частица(Cлово):
-    def __init__(self):
-        self.type = {'PART'}
+class Предлог(Cлово):  # Preposition
+    def __init__(self, analysis):
+        super(Предлог, self).__init__(analysis)
+        self.pos = {'PR'}
 
-class Падеж():
-    def __init__(self, x):
-        self.type = x
+class Частица(Cлово):  # Particle
+    def __init__(self, analysis):
+        super(Частица, self).__init__(analysis)
+        self.pos = {'PART'}
 
-    def __repr__(self):
-        return str(self.type)
+# class Падеж():
+#     def __init__(self, x):
+#         self.type = x
 
-class Именительный(Падеж):
-    def __init__(self):
-        self.падеж = {'им,'}
+#     def __repr__(self):
+#         return str(self.type)
 
-class Родительный(Падеж):
-    def __init__(self):
-        self.падеж = {'род,'}
+# class Именительный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'им,'}
 
-class Дательный(Падеж):
-    def __init__(self):
-        self.падеж = {'дат,'}
+# class Родительный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'род,'}
 
-class Винительный(Падеж):
-    def __init__(self):
-        self.падеж = {'вин,'}
+# class Дательный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'дат,'}
 
-class Творительный(Падеж):
-    def __init__(self):
-        self.падеж = {'твор,'}
+# class Винительный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'вин,'}
 
-class Предложный(Падеж):
-    def __init__(self):
-        self.падеж = {'пр,'}
+# class Творительный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'твор,'}
 
-class Партитив(Падеж):
-    def __init__(self):
-        self.падеж = {'парт,'}
+# class Предложный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'пр,'}
 
-class Местный(Падеж):
-    def __init__(self):
-        self.падеж = {'местн,'}
+# class Партитив(Падеж):
+#     def __init__(self):
+#         self.падеж = {'парт,'}
 
-class Звательный(Падеж):
-    def __init__(self):
-        self.падеж = {'зват,'}
+# class Местный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'местн,'}
 
-class Наклонение():
-    def __init__(self, x):
-        self.type = x
+# class Звательный(Падеж):
+#     def __init__(self):
+#         self.падеж = {'зват,'}
 
-    def __repr__(self):
-        return str(self.type)
+# class Наклонение():
+#     def __init__(self, x):
+#         self.type = x
 
-class Деепричастие(Наклонение):
-    def __init__(self):
-        self.наклонение = {'деепр'}
+#     def __repr__(self):
+#         return str(self.type)
 
-class Инфинитив(Наклонение):
-    def __init__(self):
-        self.наклонение = {'инф'}
+# class Деепричастие(Наклонение):
+#     def __init__(self):
+#         self.наклонение = {'деепр'}
 
-class Причастие(Наклонение):
-    def __init__(self):
-        self.наклонение = {'прич'}
+# class Инфинитив(Наклонение):
+#     def __init__(self):
+#         self.наклонение = {'инф'}
 
-class Изъявительное(Наклонение):
-    def __init__(self):
-        self.наклонение = {'изъяв'}
+# class Причастие(Наклонение):
+#     def __init__(self):
+#         self.наклонение = {'прич'}
 
-class Повелительное(Наклонение):
-    def __init__(self):
-        self.наклонение = {'пов'}
+# class Изъявительное(Наклонение):
+#     def __init__(self):
+#         self.наклонение = {'изъяв'}
 
-class Залог():
-    def __init__(self, x):
-        self.type = x
+# class Повелительное(Наклонение):
+#     def __init__(self):
+#         self.наклонение = {'пов'}
 
-    def __repr__(self):
-        return str(self.type)
+# class Залог():
+#     def __init__(self, x):
+#         self.type = x
 
-class Действительный(Залог):
-    def __init__(self):
-        self.залог = {'действ'}
+#     def __repr__(self):
+#         return str(self.type)
 
-class Страдательный(Залог):
-    def __init__(self):
-        self.залог = {'страд'}
+# class Действительный(Залог):
+#     def __init__(self):
+#         self.залог = {'действ'}
+
+# class Страдательный(Залог):
+#     def __init__(self):
+#         self.залог = {'страд'}
